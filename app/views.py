@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from app.models import UserProfile
 from app.forms import LoginForm
 from werkzeug.security import check_password_hash
+from app.forms import UploadForm
 
 
 ###
@@ -25,17 +26,23 @@ def about():
 
 
 @app.route('/upload', methods=['POST', 'GET'])
+@login_required
 def upload():
     # Instantiate your form class
-    
+    form= UploadForm()
     # Validate file upload on submit
     if form.validate_on_submit():
         # Get file data and save to your uploads folder
-
+        photo= form.photo.data
+        filename= secure_filename(photo.filename)
+        photo.save(os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            filename))
+        
         flash('File Saved', 'success')
         return redirect(url_for('home')) # Update this to redirect the user to a route that displays all uploaded image files
 
-    return render_template('upload.html')
+    return render_template("upload.html", form=form)
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -52,15 +59,18 @@ def login():
         # and password submitted. Remember you need to compare the password hash.
         user = UserProfile.query.filter_by(username=username).first()
 
+        print(user.password)
+        print(password)
         if check_password_hash(user.password, password):
         # Then store the result of that query to a `user` variable so it can be
         # passed to the login_user() method below.
         # Gets user id, load into session
             login_user(user)
-
         # Remember to flash a message to the user
             flash('You have logged in Successfully!!')
             return redirect(url_for("upload"))  # The user should be redirected to the upload form instead
+        else:
+            flash('Yuh password wrong g!!')
     return render_template("login.html", form=form)
 
 
