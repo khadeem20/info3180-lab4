@@ -1,6 +1,6 @@
 import os
 from app import app, db, login_manager
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, send_from_directory, url_for, flash, session, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.utils import secure_filename
 from app.models import UserProfile
@@ -44,6 +44,27 @@ def upload():
 
     return render_template("upload.html", form=form)
 
+def get_uploaded_images():
+    rootdir = os.getcwd()
+    # print(rootdir)
+    images = []
+    for subdir, dirs, files in os.walk(rootdir+"/uploads"):
+        for file in files:
+            # images.append(os.path.join(subdir, file))
+            images.append(file)
+            # print(images)
+    return images[1:]
+
+@app.route('/uploads/<filename>')
+def get_image(filename):
+    print(filename)
+    return send_from_directory(os.path.join(os.getcwd(),app.config['UPLOAD_FOLDER']), filename)
+
+@app.route('/files')
+@login_required
+def files():
+    files = get_uploaded_images()
+    return render_template('files.html', files=files)
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
@@ -115,3 +136,10 @@ def add_header(response):
 def page_not_found(error):
     """Custom 404 page."""
     return render_template('404.html'), 404
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out successfully.', 'success')
+    return redirect(url_for('home'))
